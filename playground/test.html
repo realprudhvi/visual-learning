@@ -257,6 +257,56 @@
             opacity: 0.5;
         }
 
+        /* Auto-play specific styles */
+        .separator {
+            width: 1px;
+            height: 30px;
+            background: var(--border);
+            margin: 0 5px;
+        }
+
+        .autoplay-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .speed-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .speed-slider {
+            -webkit-appearance: none;
+            width: 80px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f59e0b;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .speed-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .speed-label {
+            font-family: "Fira Code", monospace;
+            font-size: 0.7rem;
+            color: var(--text-sub);
+        }
+
         #btn-reset {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border);
@@ -338,6 +388,18 @@
             <button class="step-btn" id="btn-prev" disabled>←</button>
             <span id="step-indicator">Step 0</span>
             <button class="step-btn" id="btn-next" disabled>→</button>
+
+            <div class="separator"></div>
+
+            <div class="autoplay-controls">
+                <button class="step-btn" id="btn-play"
+                    style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">▶</button>
+                <div class="speed-control">
+                    <input type="range" id="speed-slider" class="speed-slider" min="100" max="2000" value="800"
+                        step="100">
+                    <span class="speed-label">Speed</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -446,6 +508,9 @@
         let resolveStep = null;
         let stepHistory = [];  // Store state snapshots for prev
         let currentStepIndex = 0;
+        let isAutoPlaying = false;
+        let autoPlayTimer = null;
+        let autoPlayDelay = 800; // Default slow speed
 
         function updateStepIndicator() {
             document.getElementById('step-indicator').textContent = `Step ${currentStepIndex}`;
@@ -493,6 +558,37 @@
             }
         }
 
+        function toggleAutoPlay() {
+            isAutoPlaying = !isAutoPlaying;
+            const btn = document.getElementById('btn-play');
+
+            if (isAutoPlaying) {
+                btn.textContent = '⏸';
+                // If we are currently waiting for a step, trigger it immediately (delayed)
+                if (resolveStep) {
+                    triggerNextStep();
+                }
+            } else {
+                btn.textContent = '▶';
+                if (autoPlayTimer) {
+                    clearTimeout(autoPlayTimer);
+                    autoPlayTimer = null;
+                }
+            }
+        }
+
+        function triggerNextStep() {
+            if (autoPlayTimer) clearTimeout(autoPlayTimer);
+
+            autoPlayTimer = setTimeout(() => {
+                if (isAutoPlaying && resolveStep) {
+                    document.getElementById('btn-next').disabled = true;
+                    resolveStep();
+                    resolveStep = null;
+                }
+            }, autoPlayDelay);
+        }
+
         function awaitStep() {
             return new Promise(resolve => {
                 // Save current state snapshot INCLUDING highlights
@@ -509,6 +605,10 @@
                 resolveStep = resolve;
                 document.getElementById('btn-next').disabled = false;
                 document.getElementById('btn-prev').disabled = currentStepIndex <= 1;
+
+                if (isAutoPlaying) {
+                    triggerNextStep();
+                }
             });
         }
 
@@ -521,6 +621,11 @@
         });
 
         document.getElementById('btn-prev').addEventListener('click', () => {
+            // Pause if playing
+            if (isAutoPlaying) {
+                toggleAutoPlay();
+            }
+
             if (currentStepIndex <= 1 || stepHistory.length < 2) return;
 
             // Go back one step
@@ -546,6 +651,22 @@
             }
         });
 
+        // Auto-play controls
+        document.getElementById('btn-play').addEventListener('click', toggleAutoPlay);
+
+        document.getElementById('speed-slider').addEventListener('input', (e) => {
+            // Invert value so higher slider = faster (lower delay)
+            // Slider 100-2000.  Map to delay. 
+            // We want nice feel. Let's just use raw value but invert definition if needed?
+            // Actually, let's keep it simple: slider value IS delay. 
+            // So left (low number) is FAST, right (high number) is SLOW.
+            // Wait, usually right is faster.
+            // Let's do: Delay = Max - Val + Min.
+            // Max=2000, Min=100. Val=2000 => Delay=100 (Fast). Val=100 => Delay=2000 (Slow).
+            const val = parseInt(e.target.value);
+            autoPlayDelay = 2100 - val;
+        });
+
         // ============ PLAYGROUND EXECUTOR ============
 
         async function runPlayground(code, input) {
@@ -555,6 +676,11 @@
             updateStepIndicator();
             document.getElementById('btn-prev').disabled = true;
             document.getElementById('btn-next').disabled = true;
+
+            // Stop any existing autoplay
+            isAutoPlaying = false;
+            document.getElementById('btn-play').textContent = '▶';
+            if (autoPlayTimer) clearTimeout(autoPlayTimer);
 
             // Reset state
             primitives.array.data = [];
