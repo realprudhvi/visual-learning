@@ -1,0 +1,10 @@
+{
+    "name": "TwoSum",
+    "structures": [
+        "array",
+        "hashmap"
+    ],
+    "defaultInput": "2, 7, 11, 15",
+    "target": 9,
+    "code": "class Playground {\n  async run(input) {\n    const nums = input.split(',').map(x => parseInt(x.trim()));\n    const target = 9;\n    \n    this.array.init(nums);\n    this.log(`Finding two numbers that sum to ${target}`);\n    await this.await();\n\n    this.log('Strategy: Use HashMap to store complement values');\n    await this.await();\n\n    for (let i = 0; i < nums.length; i++) {\n      const num = nums[i];\n      const complement = target - num;\n      \n      this.ptr.set('i', i);\n      this.array.highlight(i, '#3b82f6');\n      this.log(`Index ${i}: num=${num}, need complement=${complement}`);\n      await this.await();\n\n      // Check if complement exists in hashmap\n      if (this.hashmap.has(complement)) {\n        const j = this.hashmap.get(complement);\n        this.hashmap.highlight(complement, '#10b981');\n        this.log(`✅ Found! complement ${complement} at index ${j}`);\n        await this.await();\n        \n        this.array.highlight(j, '#10b981');\n        this.array.highlight(i, '#10b981');\n        this.log(`🎉 Answer: indices [${j}, ${i}] => ${nums[j]} + ${nums[i]} = ${target}`);\n        await this.await();\n        \n        this.ptr.remove('i');\n        return [j, i];\n      }\n\n      // Store current number with its index\n      this.hashmap.put(num, i);\n      this.log(`Stored: hashmap[${num}] = ${i}`);\n      this.array.highlight(i, '#f59e0b');\n      await this.await();\n      \n      this.array.clearHighlights();\n    }\n\n    this.ptr.remove('i');\n    this.log('❌ No solution found');\n    return null;\n  }\n}"
+}
