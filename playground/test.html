@@ -79,7 +79,6 @@
             font-weight: 500;
         }
 
-        /* === INPUT === */
         #input-field {
             width: 100%;
             padding: 14px;
@@ -89,7 +88,7 @@
             border-radius: 8px;
             font-family: "Fira Code", monospace;
             font-size: 1rem;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             transition: border-color 0.2s;
         }
 
@@ -97,6 +96,41 @@
             outline: none;
             border-color: var(--text-sub);
             box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.2);
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 8px;
+            font-family: "Fira Code", monospace;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--text-sub);
+            box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.2);
+        }
+
+        .input-field::placeholder {
+            color: #64748b;
+            font-style: italic;
         }
 
         /* === YOUR EXACT ARRAY STYLES === */
@@ -345,6 +379,76 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* === HASHMAP STYLES === */
+        .hashmap-wrapper {
+            display: flex;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .hashmap-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 280px;
+        }
+
+        .hashmap-header {
+            display: grid;
+            grid-template-columns: 100px 140px;
+            gap: 2px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 4px;
+        }
+
+        .hashmap-header-cell {
+            font-family: "Fira Code", monospace;
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 6px 10px;
+        }
+
+        .hashmap-row {
+            display: grid;
+            grid-template-columns: 100px 140px;
+            gap: 2px;
+            border-radius: 6px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .hashmap-row:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .hashmap-key {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 10px 12px;
+            font-weight: 600;
+            font-family: "Fira Code", monospace;
+            font-size: 0.9rem;
+        }
+
+        .hashmap-value {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 10px 12px;
+            font-family: "Fira Code", monospace;
+            font-size: 0.9rem;
+        }
+
+        .hashmap-empty {
+            color: var(--text-sub);
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
     </style>
 </head>
 
@@ -354,7 +458,9 @@
 
         <div class="panel">
             <h3>Input</h3>
-            <input type="text" id="input-field" placeholder="Enter input...">
+            <div id="inputs-container">
+                <!-- Dynamic inputs will be added here -->
+            </div>
             <button id="btn-reset" onclick="reset()">▶ Start / Reset</button>
         </div>
 
@@ -376,6 +482,13 @@
                 <h3>Queue</h3>
                 <div class="queue-wrapper">
                     <div class="queue-container" id="queue-container"></div>
+                </div>
+            </div>
+
+            <div class="panel" id="hashmap-panel" style="display: none;">
+                <h3>HashMap</h3>
+                <div class="hashmap-wrapper">
+                    <div class="hashmap-container" id="hashmap-container"></div>
                 </div>
             </div>
         </div>
@@ -497,6 +610,83 @@
                         .map(([name, idx]) => `<div class="ptr-indicator">${name}=${idx}</div>`)
                         .join('');
                 }
+            },
+
+            hashmap: {
+                data: new Map(),
+                put(key, val) {
+                    this.data.set(key, val);
+                    this.render();
+                },
+                get(key) {
+                    return this.data.get(key);
+                },
+                has(key) {
+                    return this.data.has(key);
+                },
+                remove(key) {
+                    this.data.delete(key);
+                    this.render();
+                },
+                clear() {
+                    this.data.clear();
+                    this.render();
+                },
+                size() {
+                    return this.data.size;
+                },
+                highlight(key, color) {
+                    const rows = document.querySelectorAll('.hashmap-row');
+                    rows.forEach(row => {
+                        if (row.dataset.key === String(key)) {
+                            row.querySelector('.hashmap-key').style.background = color;
+                            row.querySelector('.hashmap-value').style.background = color;
+                        }
+                    });
+                },
+                clearHighlights() {
+                    document.querySelectorAll('.hashmap-key').forEach(el => {
+                        el.style.background = '';
+                    });
+                    document.querySelectorAll('.hashmap-value').forEach(el => {
+                        el.style.background = '';
+                    });
+                },
+                render() {
+                    const container = document.getElementById('hashmap-container');
+                    if (!container) return;
+
+                    if (this.data.size === 0) {
+                        container.innerHTML = '<div class="hashmap-empty">Empty HashMap</div>';
+                        return;
+                    }
+
+                    let html = `
+                        <div class="hashmap-header">
+                            <div class="hashmap-header-cell">Key</div>
+                            <div class="hashmap-header-cell">Value</div>
+                        </div>
+                    `;
+
+                    // Sort entries for consistent display
+                    const entries = [...this.data.entries()].sort((a, b) => {
+                        if (typeof a[0] === 'number' && typeof b[0] === 'number') {
+                            return a[0] - b[0];
+                        }
+                        return String(a[0]).localeCompare(String(b[0]));
+                    });
+
+                    entries.forEach(([key, val]) => {
+                        html += `
+                            <div class="hashmap-row" data-key="${key}">
+                                <div class="hashmap-key">${key}</div>
+                                <div class="hashmap-value">${val}</div>
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                }
             }
         };
 
@@ -535,7 +725,18 @@
                 });
             });
 
-            return { arrayHighlights, stackHighlights };
+            const hashmapHighlights = [];
+            document.querySelectorAll('.hashmap-row').forEach((row) => {
+                const keyEl = row.querySelector('.hashmap-key');
+                const valEl = row.querySelector('.hashmap-value');
+                hashmapHighlights.push({
+                    key: row.dataset.key,
+                    keyBg: keyEl ? keyEl.style.background : '',
+                    valBg: valEl ? valEl.style.background : ''
+                });
+            });
+
+            return { arrayHighlights, stackHighlights, hashmapHighlights };
         }
 
         // Restore highlight states
@@ -554,6 +755,18 @@
                     if (highlights.stackHighlights[i]) {
                         item.style.backgroundColor = highlights.stackHighlights[i].bg;
                         item.style.borderColor = highlights.stackHighlights[i].border;
+                    }
+                });
+            }
+
+            if (highlights.hashmapHighlights) {
+                document.querySelectorAll('.hashmap-row').forEach((row) => {
+                    const match = highlights.hashmapHighlights.find(h => h.key === row.dataset.key);
+                    if (match) {
+                        const keyEl = row.querySelector('.hashmap-key');
+                        const valEl = row.querySelector('.hashmap-value');
+                        if (keyEl) keyEl.style.background = match.keyBg;
+                        if (valEl) valEl.style.background = match.valBg;
                     }
                 });
             }
@@ -605,6 +818,7 @@
                 stepHistory.push({
                     arrayData: [...primitives.array.data],
                     stackData: [...primitives.stack.data],
+                    hashmapData: new Map(primitives.hashmap.data),
                     pointers: { ...primitives.ptr.pointers },
                     highlights: highlights
                 });
@@ -646,10 +860,12 @@
                 // Restore data state
                 primitives.array.data = [...prevState.arrayData];
                 primitives.stack.data = [...prevState.stackData];
+                primitives.hashmap.data = new Map(prevState.hashmapData);
                 primitives.ptr.pointers = { ...prevState.pointers };
 
                 primitives.array.render();
                 primitives.stack.render();
+                primitives.hashmap.render();
                 primitives.ptr.render();
 
                 // Restore highlight state
@@ -695,9 +911,11 @@
             // Reset state
             primitives.array.data = [];
             primitives.stack.data = [];
+            primitives.hashmap.data.clear();
             primitives.ptr.pointers = {};
             primitives.array.render();
             primitives.stack.render();
+            primitives.hashmap.render();
             primitives.ptr.render();
 
             // Create Playground class from code string
@@ -708,6 +926,7 @@
             playground.array = primitives.array;
             playground.stack = primitives.stack;
             playground.queue = primitives.queue;
+            playground.hashmap = primitives.hashmap;
             playground.ptr = primitives.ptr;
             playground.log = log;
             playground.await = awaitStep;
@@ -748,16 +967,22 @@
             document.getElementById('array-panel').style.display = 'none';
             document.getElementById('stack-panel').style.display = 'none';
             document.getElementById('queue-panel').style.display = 'none';
+            document.getElementById('hashmap-panel').style.display = 'none';
+
+            // Normalize structure names (hashmap-simple -> hashmap)
+            const normalizedStructures = structures.map(s =>
+                s === 'hashmap-simple' ? 'hashmap' : s
+            );
 
             // Show needed panels
-            structures.forEach(s => {
+            normalizedStructures.forEach(s => {
                 const panel = document.getElementById(`${s}-panel`);
                 if (panel) panel.style.display = 'block';
             });
 
             // Update grid columns based on visible panels
-            const visibleCount = structures.filter(s =>
-                ['array', 'stack', 'queue'].includes(s)
+            const visibleCount = normalizedStructures.filter(s =>
+                ['array', 'stack', 'queue', 'hashmap'].includes(s)
             ).length;
 
             const row = document.getElementById('structures-row');
@@ -770,17 +995,18 @@
             }
         }
 
+        let playgroundInputs = [];
+
         fetch('placeholder.json')
             .then(r => r.json())
             .then(data => {
                 playgroundCode = data.code;
                 playgroundStructures = data.structures || [];
+                playgroundInputs = data.inputs || [];
                 updateVisiblePanels(playgroundStructures);
 
-                // Set default input from JSON
-                if (data.defaultInput) {
-                    document.getElementById('input-field').value = data.defaultInput;
-                }
+                // Build input fields from JSON config
+                buildInputFields(playgroundInputs);
 
                 log('✓ Loaded! Click "Start" to begin.');
             })
@@ -789,13 +1015,59 @@
                 console.error(e);
             });
 
+        function buildInputFields(inputs) {
+            const container = document.getElementById('inputs-container');
+            container.innerHTML = '';
+
+            if (inputs.length === 0) {
+                // Fallback: single generic input
+                container.innerHTML = `
+                    <div class="input-group">
+                        <label class="input-label">Input</label>
+                        <input type="text" class="input-field" id="input-0" placeholder="Enter values...">
+                    </div>
+                `;
+                return;
+            }
+
+            inputs.forEach((inp, idx) => {
+                const group = document.createElement('div');
+                group.className = 'input-group';
+
+                const label = document.createElement('label');
+                label.className = 'input-label';
+                label.textContent = inp.label || `Input ${idx + 1}`;
+                label.setAttribute('for', `input-${idx}`);
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'input-field';
+                input.id = `input-${idx}`;
+                input.placeholder = inp.placeholder || '';
+                if (inp.default !== undefined) {
+                    input.value = inp.default;
+                }
+
+                group.appendChild(label);
+                group.appendChild(input);
+                container.appendChild(group);
+            });
+        }
+
         function reset() {
             if (!playgroundCode) {
                 log('Still loading...');
                 return;
             }
-            const input = document.getElementById('input-field').value;
-            runPlayground(playgroundCode, input);
+
+            // Collect all input values
+            const inputValues = [];
+            const inputFields = document.querySelectorAll('#inputs-container .input-field');
+            inputFields.forEach(field => {
+                inputValues.push(field.value);
+            });
+
+            runPlayground(playgroundCode, inputValues);
         }
     </script>
 </body>
